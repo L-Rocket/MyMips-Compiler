@@ -2,6 +2,7 @@
 
 本项目是基于 LLVM 二次开发的自定义后端，目标架构为 `MyMips`。  
 核心目标是将 C/LLVM IR 编译为符合 MyMips ISA 的汇编代码。
+该项目用于 Duke University `ECE550` 期末作业中的自定义处理器编译器实现。
 
 ## 1. 项目定位
 
