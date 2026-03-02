@@ -37,7 +37,7 @@ jobs:
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -91,7 +91,7 @@ jobs:
           sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
 
       - name: Upload CI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mymips-toolchain-${{ steps.version.outputs.version }}-linux-x86_64
           path: |
