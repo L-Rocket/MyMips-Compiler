@@ -38,7 +38,7 @@ build/bin/llc -march=MyMips -filetype=asm test.ll -o test.s
 仓库已包含 GitHub Actions 工作流：
 
 - 工作流文件：`.github/workflows/mymips-release.yml`
-- 触发方式：推送形如 `v1.0.0` 的 tag
+- 触发方式：推送形如 `v1.0.0` 的 tag，或手动触发 `workflow_dispatch` 并传入 `release_version`
 - 产物：自动构建并在 Release 上传 `clang` / `llc` 二进制
 
 ## 文档

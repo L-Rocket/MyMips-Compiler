@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version (example: v1.2.3)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,8 +19,40 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Resolve release version
+        id: version
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.release_version }}"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+
+          if ! echo "${VERSION}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$'; then
+            echo "Invalid release version: ${VERSION}"
+            echo "Expected format: vMAJOR.MINOR.PATCH (optional pre-release/build suffixes)"
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure release tag exists for manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${VERSION} already exists, reusing it."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "${VERSION}" -m "Release ${VERSION}" "${GITHUB_SHA}"
+            git push origin "refs/tags/${VERSION}"
+          fi
 
       - name: Install dependencies
         run: |
@@ -29,6 +66,7 @@ jobs:
             -DLLVM_ENABLE_PROJECTS=clang \
             -DLLVM_TARGETS_TO_BUILD=X86 \
             -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=MyMips \
+            -DLLVM_TOOL_LLVM_EXEGESIS_BUILD=OFF \
             -DLLVM_INCLUDE_TESTS=OFF \
             -DLLVM_INCLUDE_BENCHMARKS=OFF \
             -DLLVM_INCLUDE_EXAMPLES=OFF
@@ -47,22 +85,26 @@ jobs:
           cp build/bin/clang dist/clang
           cp build/bin/llc dist/llc
           strip dist/clang dist/llc || true
-          tar -C dist -czf "MyMips-Compiler-${GITHUB_REF_NAME}-linux-x86_64.tar.gz" clang llc
-          sha256sum "MyMips-Compiler-${GITHUB_REF_NAME}-linux-x86_64.tar.gz" > "MyMips-Compiler-${GITHUB_REF_NAME}-linux-x86_64.tar.gz.sha256"
+
+          ARCHIVE="MyMips-Compiler-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz"
+          tar -C dist -czf "${ARCHIVE}" clang llc
+          sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
 
       - name: Upload CI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mymips-toolchain-${{ github.ref_name }}-linux-x86_64
+          name: mymips-toolchain-${{ steps.version.outputs.version }}-linux-x86_64
           path: |
-            MyMips-Compiler-${{ github.ref_name }}-linux-x86_64.tar.gz
-            MyMips-Compiler-${{ github.ref_name }}-linux-x86_64.tar.gz.sha256
+            MyMips-Compiler-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz
+            MyMips-Compiler-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz.sha256
 
       - name: Publish GitHub Release assets
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: MyMips Compiler ${{ steps.version.outputs.version }}
           generate_release_notes: true
+          fail_on_unmatched_files: true
           files: |
-            MyMips-Compiler-${{ github.ref_name }}-linux-x86_64.tar.gz
-            MyMips-Compiler-${{ github.ref_name }}-linux-x86_64.tar.gz.sha256
+            MyMips-Compiler-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz
+            MyMips-Compiler-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz.sha256

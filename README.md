@@ -38,7 +38,7 @@ build/bin/llc -march=MyMips -filetype=asm test.ll -o test.s
 A GitHub Actions workflow is included:
 
 - Workflow file: `.github/workflows/mymips-release.yml`
-- Trigger: push a tag like `v1.0.0`
+- Trigger: push a tag like `v1.0.0`, or run `workflow_dispatch` with `release_version`
 - Output: release assets containing compiled `clang` and `llc`
 
 ## Documentation
