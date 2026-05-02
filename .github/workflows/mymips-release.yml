@@ -37,7 +37,7 @@ jobs:
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -91,7 +91,7 @@ jobs:
           sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
 
       - name: Upload CI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mymips-toolchain-${{ steps.version.outputs.version }}-linux-x86_64
           path: |
@@ -99,7 +99,7 @@ jobs:
             MyMips-Compiler-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz.sha256
 
       - name: Publish GitHub Release assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: MyMips Compiler ${{ steps.version.outputs.version }}
